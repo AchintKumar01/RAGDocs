@@ -1,10 +1,17 @@
-streamlit>=1.45,<2.0
-langchain-core>=0.3,<2.0
-langchain-text-splitters>=0.3,<2.0
-langchain-ollama>=0.2,<2.0
-langchain-chroma>=0.2,<2.0
-chromadb>=0.5,<2.0
-pypdf>=5.0,<7.0
-python-docx>=1.1,<2.0
-pandas>=2.2,<4.0
-openpyxl>=3.1,<4.0
+# Streamlit creates the web interface.
+streamlit
+
+# LangChain packages help split text and connect to Ollama and ChromaDB.
+langchain-core
+langchain-text-splitters
+langchain-ollama
+langchain-chroma
+
+# ChromaDB stores and searches document vectors.
+chromadb
+
+# These packages read the supported document formats.
+pypdf
+python-docx
+pandas
+openpyxl
