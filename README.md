@@ -1,19 +1,10 @@
-# RAGDocs
+# RAGDocs — Local Multi-Document RAG Assistant
 
-RAGDocs is a small document question-answering app made with Streamlit. It is also a learning project for understanding RAG, embeddings, and vector databases.
+RAGDocs is a document question-answering application built with Python and Streamlit. Users can add several documents, ask questions about their contents, and inspect the passages used to produce an answer.
 
-## What happens when I ask a question?
+The application uses Retrieval-Augmented Generation (RAG): it searches the document collection for relevant text and gives that text to a language model as context. This helps connect answers to the uploaded documents instead of asking the model to answer from general knowledge alone.
 
-1. The app reads text from the uploaded files.
-2. It splits the text into smaller chunks.
-3. Ollama turns each chunk into an embedding (a list of numbers that represents the text).
-4. ChromaDB saves the chunks and embeddings in a local folder.
-5. When you ask a question, the app searches for chunks with similar embeddings.
-6. The chat model gets those chunks and writes an answer with source labels.
-
-The answer model is told to use the retrieved text only. This can reduce made-up answers, but cannot guarantee that the model is always correct. Check the source passages for important information.
-
-## Supported files
+## Supported documents
 
 - PDF
 - DOCX
@@ -21,86 +12,64 @@ The answer model is told to use the retrieved text only. This can reduce made-up
 - CSV
 - Markdown (`.md` and `.markdown`)
 
-Scanned PDFs are pictures and do not contain selectable text. Run OCR on those files before uploading them.
+The application extracts text from each file. Scanned PDFs contain images instead of selectable text and need OCR before they can be indexed.
 
-## Install and run on your computer
+## How it works
 
-You need Python 3.10 or newer and [Ollama](https://ollama.com/download).
+1. **Read:** Extract text from uploaded documents and keep basic source information, such as file name and page or sheet.
+2. **Split:** Divide the extracted text into smaller overlapping chunks.
+3. **Embed:** Use Ollama and `nomic-embed-text` to turn each chunk into a vector representation of its meaning.
+4. **Store:** Save the chunks and vectors in a local ChromaDB collection.
+5. **Retrieve:** Turn the user's question into a vector and search ChromaDB for similar chunks.
+6. **Generate:** Send the question and retrieved text to the chat model, then display the answer with source passages.
 
-Pull the two default models in a terminal:
-
-```bash
-ollama pull llama3.2
-ollama pull nomic-embed-text
+```text
+Uploaded documents → extracted text → chunks → embeddings → ChromaDB
+                                                           ↓
+Question → question embedding → relevant chunks → Gemma 3 4B → answer and sources
 ```
 
-Create a virtual environment:
+## Models
 
-```bash
-python -m venv .venv
-```
+- **Chat model:** Gemma 3 4B (`gemma3:4b`), run locally with Ollama.
+- **Embedding model:** `nomic-embed-text`, run locally with Ollama.
 
-On Windows PowerShell, activate it, install the packages, and run Streamlit:
+The chat model writes responses. The embedding model represents document chunks and questions as vectors so ChromaDB can find text with similar meaning. The model names and Ollama server address can be selected in the app's sidebar.
 
-```powershell
-.venv\Scripts\Activate.ps1
-python -m pip install -r requirements.txt
-streamlit run app.py
-```
+## Main features
 
-On macOS or Linux:
+- Upload multiple supported documents.
+- Show progress while documents are being processed.
+- Adjust chunk size and overlap to control how text is divided.
+- Choose how many matching passages are retrieved for a question.
+- Ask follow-up questions in a chat interface.
+- Review the source text, file name, page or sheet, and similarity score for retrieved passages.
+- Store vectors locally in ChromaDB and run both models through Ollama.
 
-```bash
-source .venv/bin/activate
-python -m pip install -r requirements.txt
-streamlit run app.py
-```
+## Technology used
 
-Open the local address printed by Streamlit, usually `http://localhost:8501`.
+| Part | Technology |
+| --- | --- |
+| User interface | Streamlit |
+| Application language | Python |
+| Text splitting and model integrations | LangChain |
+| Vector database | ChromaDB |
+| Local model runtime | Ollama |
+| Answer generation | Gemma 3 4B (`gemma3:4b`) |
+| Text embeddings | `nomic-embed-text` |
+| Document parsing | pypdf, python-docx, pandas, openpyxl |
 
-## Change the models
+## Project structure
 
-The sidebar has fields for the Ollama URL, chat model, and embedding model. The defaults are:
+- `app.py` contains the Streamlit page, upload and processing flow, model settings, and chat interface.
+- `rag_helper.py` contains the document readers, chunking, embedding and ChromaDB search steps, and answer generation call.
+- `requirements.txt` lists the Python packages used by the application.
+- `chroma_db/` is created when the application runs and stores the local vector data.
 
-- Ollama URL: `http://localhost:11434`
-- Chat model: `llama3.2`
-- Embedding model: `nomic-embed-text`
+## Answer grounding
 
-You can enter other model names if they are installed in Ollama. Use the same embedding model for the files in one session.
+The prompt tells the chat model to use the retrieved passages and to say when it cannot find an answer in them. RAG and source labels can make answers easier to check, but they do not guarantee that every answer is correct. Users should review the displayed passages when accuracy matters.
 
-Environment variables can set the default values. For example, in PowerShell:
+## Project summary
 
-```powershell
-$env:OLLAMA_BASE_URL = "http://localhost:11434"
-$env:OLLAMA_CHAT_MODEL = "llama3.2"
-$env:OLLAMA_EMBEDDING_MODEL = "nomic-embed-text"
-streamlit run app.py
-```
-
-## How the code is organized
-
-- `app.py` contains the page, file upload, progress message, settings, and chat.
-- `rag_helper.py` contains file reading, chunking, vector search, and model calls.
-- `requirements.txt` lists the Python packages used by the app.
-- `chroma_db/` is created when you run the app and stores vectors. It is excluded from Git.
-
-## Deployment
-
-You can put this code on GitHub and deploy the Streamlit app from that repository. A hosted Streamlit app cannot use `localhost` to reach Ollama on your personal computer. For cloud deployment, configure an Ollama server that the hosted app can reach. Protect that server; do not expose an unauthenticated Ollama endpoint to the public internet.
-
-Some free hosting services remove local files when they restart. This app saves Chroma data in `chroma_db`, so use a host with persistent storage if you need to keep the index after a restart.
-
-## Put the project on GitHub
-
-First create an empty repository on GitHub. Then run these commands in this folder and replace the URL with your repository URL:
-
-```bash
-git init
-git add .
-git commit -m "Add beginner RAGDocs app"
-git branch -M main
-git remote add origin https://github.com/YOUR-USERNAME/ragdocs.git
-git push -u origin main
-```
-
-Do not add private documents, the `chroma_db` folder, or secrets to GitHub.
+RAGDocs demonstrates a local RAG workflow for multi-document question answering: parsing different file types, splitting content into chunks, creating embeddings, storing and retrieving vectors, and generating answers with source context.
